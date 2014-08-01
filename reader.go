@@ -24,6 +24,16 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
+func (r *Reader) ReadRaw(bs []byte) (int, error) {
+	if r.err != nil {
+		return 0, r.err
+	}
+
+	var n int
+	n, r.err = io.ReadFull(r.r, bs)
+	return n, r.err
+}
+
 func (r *Reader) ReadString() string {
 	if r.sb == nil {
 		r.sb = make([]byte, 64)

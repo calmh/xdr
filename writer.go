@@ -27,6 +27,16 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
+func (w *Writer) WriteRaw(bs []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+
+	var n int
+	n, w.err = w.w.Write(bs)
+	return n, w.err
+}
+
 func (w *Writer) WriteString(s string) (int, error) {
 	return w.WriteBytes([]byte(s))
 }
