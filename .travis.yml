@@ -8,6 +8,7 @@ install:
 - go get github.com/mattn/goveralls
 
 script:
+- ./generate.sh
 - go test -coverprofile=coverage.out
 
 after_success:
