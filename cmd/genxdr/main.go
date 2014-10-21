@@ -71,8 +71,8 @@ func (o {{.TypeName}}) encodeXDR(xw *xdr.Writer) (int, error) {
 				xw.Write{{$fieldInfo.Encoder}}({{$fieldInfo.Convert}}(o.{{$fieldInfo.Name}}))
 			{{else if $fieldInfo.IsBasic}}
 				{{if ge $fieldInfo.Max 1}}
-					if len(o.{{$fieldInfo.Name}}) > {{$fieldInfo.Max}} {
-						return xw.Tot(), xdr.ErrElementSizeExceeded
+					if l := len(o.{{$fieldInfo.Name}}); l > {{$fieldInfo.Max}} {
+						return xw.Tot(), xdr.ElementSizeExceeded("{{$fieldInfo.Name}}", l, {{$fieldInfo.Max}})
 					}
 				{{end}}
 				xw.Write{{$fieldInfo.Encoder}}(o.{{$fieldInfo.Name}})
@@ -84,8 +84,8 @@ func (o {{.TypeName}}) encodeXDR(xw *xdr.Writer) (int, error) {
 			{{end}}
 		{{else}}
 			{{if ge $fieldInfo.Max 1}}
-				if len(o.{{$fieldInfo.Name}}) > {{$fieldInfo.Max}} {
-					return xw.Tot(), xdr.ErrElementSizeExceeded
+				if l := len(o.{{$fieldInfo.Name}}); l > {{$fieldInfo.Max}} {
+					return xw.Tot(), xdr.ElementSizeExceeded("{{$fieldInfo.Name}}", l, {{$fieldInfo.Max}})
 				}
 			{{end}}
 			xw.WriteUint32(uint32(len(o.{{$fieldInfo.Name}})))
@@ -135,7 +135,7 @@ func (o *{{.TypeName}}) decodeXDR(xr *xdr.Reader) error {
 			_{{$fieldInfo.Name}}Size := int(xr.ReadUint32())
 			{{if ge $fieldInfo.Max 1}}
 				if _{{$fieldInfo.Name}}Size > {{$fieldInfo.Max}} {
-					return xdr.ErrElementSizeExceeded
+					return xdr.ElementSizeExceeded("{{$fieldInfo.Name}}", _{{$fieldInfo.Name}}Size, {{$fieldInfo.Max}})
 				}
 			{{end}}
 			o.{{$fieldInfo.Name}} = make([]{{$fieldInfo.FieldType}}, _{{$fieldInfo.Name}}Size)

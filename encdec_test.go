@@ -24,9 +24,10 @@ type TestStruct struct {
 	UI32 uint32
 	I64  int64
 	UI64 uint64
-	BS   []byte
-	S    string
+	BS   []byte // max:1024
+	S    string // max:1024
 	C    Opaque
+	SS   []string // max:1024
 }
 
 type Opaque [32]byte
