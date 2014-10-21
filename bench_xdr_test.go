@@ -72,15 +72,15 @@ func (o XDRBenchStruct) EncodeXDR(w io.Writer) (int, error) {
 	return o.encodeXDR(xw)
 }
 
-func (o XDRBenchStruct) MarshalXDR() []byte {
+func (o XDRBenchStruct) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }
 
-func (o XDRBenchStruct) AppendXDR(bs []byte) []byte {
+func (o XDRBenchStruct) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)
-	o.encodeXDR(xw)
-	return []byte(aw)
+	_, err := o.encodeXDR(xw)
+	return []byte(aw), err
 }
 
 func (o XDRBenchStruct) encodeXDR(xw *xdr.Writer) (int, error) {
@@ -150,15 +150,15 @@ func (o repeatReader) EncodeXDR(w io.Writer) (int, error) {
 	return o.encodeXDR(xw)
 }
 
-func (o repeatReader) MarshalXDR() []byte {
+func (o repeatReader) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }
 
-func (o repeatReader) AppendXDR(bs []byte) []byte {
+func (o repeatReader) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)
-	o.encodeXDR(xw)
-	return []byte(aw)
+	_, err := o.encodeXDR(xw)
+	return []byte(aw), err
 }
 
 func (o repeatReader) encodeXDR(xw *xdr.Writer) (int, error) {

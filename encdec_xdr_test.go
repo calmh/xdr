@@ -78,15 +78,15 @@ func (o TestStruct) EncodeXDR(w io.Writer) (int, error) {
 	return o.encodeXDR(xw)
 }
 
-func (o TestStruct) MarshalXDR() []byte {
+func (o TestStruct) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }
 
-func (o TestStruct) AppendXDR(bs []byte) []byte {
+func (o TestStruct) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)
-	o.encodeXDR(xw)
-	return []byte(aw)
+	_, err := o.encodeXDR(xw)
+	return []byte(aw), err
 }
 
 func (o TestStruct) encodeXDR(xw *xdr.Writer) (int, error) {
