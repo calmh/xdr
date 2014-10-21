@@ -76,6 +76,14 @@ func (o XDRBenchStruct) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }
 
+func (o XDRBenchStruct) MustMarshalXDR() []byte {
+	bs, err := o.MarshalXDR()
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}
+
 func (o XDRBenchStruct) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)
@@ -152,6 +160,14 @@ func (o repeatReader) EncodeXDR(w io.Writer) (int, error) {
 
 func (o repeatReader) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
+}
+
+func (o repeatReader) MustMarshalXDR() []byte {
+	bs, err := o.MarshalXDR()
+	if err != nil {
+		panic(err)
+	}
+	return bs
 }
 
 func (o repeatReader) AppendXDR(bs []byte) ([]byte, error) {

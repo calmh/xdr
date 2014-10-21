@@ -57,6 +57,14 @@ func (o {{.TypeName}}) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }//+n
 
+func (o {{.TypeName}}) MustMarshalXDR() []byte {
+	bs, err := o.MarshalXDR()
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}//+n
+
 func (o {{.TypeName}}) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)

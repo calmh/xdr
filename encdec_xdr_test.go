@@ -91,6 +91,14 @@ func (o TestStruct) MarshalXDR() ([]byte, error) {
 	return o.AppendXDR(make([]byte, 0, 128))
 }
 
+func (o TestStruct) MustMarshalXDR() []byte {
+	bs, err := o.MarshalXDR()
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}
+
 func (o TestStruct) AppendXDR(bs []byte) ([]byte, error) {
 	var aw = xdr.AppendWriter(bs)
 	var xw = xdr.NewWriter(&aw)
