@@ -21,14 +21,13 @@ import (
 )
 
 type fieldInfo struct {
-	Name       string
-	IsBasic    bool   // handled by one the native Read/WriteUint64 etc functions
-	IsSlice    bool   // field is a slice of FieldType
-	IsExternal bool   // defined in another package
-	FieldType  string // original type of field, i.e. "int"
-	Encoder    string // the encoder name, i.e. "Uint64" for Read/WriteUint64
-	Convert    string // what to convert to when encoding, i.e. "uint64"
-	Max        int    // max size for slices and strings
+	Name      string
+	IsBasic   bool   // handled by one the native Read/WriteUint64 etc functions
+	IsSlice   bool   // field is a slice of FieldType
+	FieldType string // original type of field, i.e. "int"
+	Encoder   string // the encoder name, i.e. "Uint64" for Read/WriteUint64
+	Convert   string // what to convert to when encoding, i.e. "uint64"
+	Max       int    // max size for slices and strings
 }
 
 type structInfo struct {
@@ -266,10 +265,9 @@ func handleStruct(t *ast.StructType) []fieldInfo {
 
 		case *ast.SelectorExpr:
 			f = fieldInfo{
-				Name:       fn,
-				IsExternal: true,
-				FieldType:  ft.Sel.Name,
-				Max:        max,
+				Name:      fn,
+				FieldType: ft.Sel.Name,
+				Max:       max,
 			}
 		}
 
@@ -352,13 +350,11 @@ func generateDiagram(output io.Writer, s structInfo) {
 				fmt.Fprintf(output, "/ %s /\n", center("", 61))
 				fmt.Fprintf(output, "\\ %s \\\n", center(tn, 61))
 				fmt.Fprintf(output, "/ %s /\n", center("", 61))
-			} else if f.IsExternal {
-				tn = "Externally Defined " + tn + " Structure"
+			} else {
+				tn = tn + " Structure"
 				fmt.Fprintf(output, "/ %s /\n", center("", 61))
 				fmt.Fprintf(output, "\\ %s \\\n", center(tn, 61))
 				fmt.Fprintf(output, "/ %s /\n", center("", 61))
-			} else {
-				fmt.Fprintf(output, "| %s |\n", center(tn, 61))
 			}
 			fmt.Fprintln(output, line)
 		}
