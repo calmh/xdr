@@ -30,6 +30,9 @@ type TestStruct struct {
 	SS   []string // max:1024
 }
 
+type EmptyStruct struct {
+}
+
 type Opaque [32]byte
 
 func (u *Opaque) EncodeXDRInto(w *xdr.Writer) (int, error) {
