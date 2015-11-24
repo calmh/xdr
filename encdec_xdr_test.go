@@ -183,3 +183,46 @@ func (o *TestStruct) DecodeXDRFrom(xr *xdr.Reader) error {
 	}
 	return xr.Error()
 }
+
+/*
+
+EmptyStruct Structure:
+(contains no fields)
+
+
+struct EmptyStruct {
+}
+
+*/
+
+func (o EmptyStruct) EncodeXDR(w io.Writer) (int, error) {
+	return 0, nil
+}
+
+func (o EmptyStruct) MarshalXDR() ([]byte, error) {
+	return nil, nil
+}
+
+func (o EmptyStruct) MustMarshalXDR() []byte {
+	return nil
+}
+
+func (o EmptyStruct) AppendXDR(bs []byte) ([]byte, error) {
+	return bs, nil
+}
+
+func (o EmptyStruct) EncodeXDRInto(xw *xdr.Writer) (int, error) {
+	return xw.Tot(), xw.Error()
+}
+
+func (o *EmptyStruct) DecodeXDR(r io.Reader) error {
+	return nil
+}
+
+func (o *EmptyStruct) UnmarshalXDR(bs []byte) error {
+	return nil
+}
+
+func (o *EmptyStruct) DecodeXDRFrom(xr *xdr.Reader) error {
+	return xr.Error()
+}
