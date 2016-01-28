@@ -40,6 +40,10 @@ XDRBenchStruct Structure:
 \                     Bs1 (variable length)                     \
 /                                                               /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                         Number of Is0                         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                              Is0                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                         Length of S0                          |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
@@ -61,6 +65,7 @@ struct XDRBenchStruct {
 	unsigned int I4;
 	opaque Bs0<128>;
 	opaque Bs1<>;
+	int Is0<>;
 	string S0<128>;
 	string S1<>;
 }
@@ -101,6 +106,10 @@ func (o XDRBenchStruct) EncodeXDRInto(xw *xdr.Writer) (int, error) {
 	}
 	xw.WriteBytes(o.Bs0)
 	xw.WriteBytes(o.Bs1)
+	xw.WriteUint32(uint32(len(o.Is0)))
+	for i := range o.Is0 {
+		xw.WriteUint32(uint32(o.Is0[i]))
+	}
 	if l := len(o.S0); l > 128 {
 		return xw.Tot(), xdr.ElementSizeExceeded("S0", l, 128)
 	}
@@ -127,6 +136,14 @@ func (o *XDRBenchStruct) DecodeXDRFrom(xr *xdr.Reader) error {
 	o.I4 = xr.ReadUint8()
 	o.Bs0 = xr.ReadBytesMax(128)
 	o.Bs1 = xr.ReadBytes()
+	_Is0Size := int(xr.ReadUint32())
+	if _Is0Size < 0 {
+		return xdr.ElementSizeExceeded("Is0", _Is0Size, 0)
+	}
+	o.Is0 = make([]int32, _Is0Size)
+	for i := range o.Is0 {
+		o.Is0[i] = int32(xr.ReadUint32())
+	}
 	o.S0 = xr.ReadStringMax(128)
 	o.S1 = xr.ReadString()
 	return xr.Error()

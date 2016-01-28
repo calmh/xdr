@@ -19,6 +19,7 @@ type XDRBenchStruct struct {
 	I4  uint8
 	Bs0 []byte // max:128
 	Bs1 []byte
+	Is0 []int32
 	S0  string // max:128
 	S1  string
 }
@@ -31,6 +32,7 @@ var s = XDRBenchStruct{
 	I4:  45,
 	Bs0: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},
 	Bs1: []byte{11, 12, 13, 14, 15, 16, 17, 18, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+	Is0: []int32{23, 43},
 	S0:  "Hello World! String one.",
 	S1:  "Hello World! String two.",
 }
