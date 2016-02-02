@@ -5,9 +5,6 @@
 package xdr_test
 
 import (
-	"bytes"
-	"io"
-
 	"github.com/calmh/xdr"
 )
 
@@ -17,6 +14,8 @@ TestStruct Structure:
 
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        B (V=0 or 1)                         |V|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
 \                         int Structure                         \
@@ -42,16 +41,12 @@ TestStruct Structure:
 +                        UI64 (64 bits)                         +
 |                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                         Length of BS                          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
-\                     BS (variable length)                      \
+\                   BS (length + padded data)                   \
 /                                                               /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                          Length of S                          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
-\                      S (variable length)                      \
+\                   S (length + padded data)                    \
 /                                                               /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
@@ -60,15 +55,30 @@ TestStruct Structure:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                         Number of SS                          |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                         Length of SS                          |
+/                                                               /
+/                                                               /
+\                   SS (length + padded data)                   \
+/                                                               /
+/                                                               /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /                                                               /
-\                     SS (variable length)                      \
+\                     EmptyStruct Structure                     \
+/                                                               /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/                                                               /
+\                     OtherStruct Structure                     \
+/                                                               /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                         Number of OSs                         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/                                                               /
+\              Zero or more OtherStruct Structures              \
 /                                                               /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 
 struct TestStruct {
+	bool B;
 	int I;
 	int I8;
 	unsigned int UI8;
@@ -82,17 +92,28 @@ struct TestStruct {
 	string S<1024>;
 	Opaque C;
 	string SS<1024>;
+	EmptyStruct ES;
+	OtherStruct OS;
+	OtherStruct OSs<>;
 }
 
 */
 
-func (o TestStruct) EncodeXDR(w io.Writer) (int, error) {
-	var xw = xdr.NewWriter(w)
-	return o.EncodeXDRInto(xw)
+func (o TestStruct) XDRSize() int {
+	return 4 + 8 + 4 + 4 + 4 + 4 + 4 + 4 + 8 + 8 +
+		4 + len(o.BS) + xdr.Padding(len(o.BS)) +
+		4 + len(o.S) + xdr.Padding(len(o.S)) +
+		o.C.XDRSize() +
+		4 + xdr.SizeOfSlice(o.SS) +
+		o.ES.XDRSize() +
+		o.OS.XDRSize() +
+		4 + xdr.SizeOfSlice(o.OSs)
 }
 
 func (o TestStruct) MarshalXDR() ([]byte, error) {
-	return o.AppendXDR(make([]byte, 0, 128))
+	buf := make([]byte, o.XDRSize())
+	m := &xdr.Marshaller{Data: buf}
+	return buf, o.MarshalXDRInto(m)
 }
 
 func (o TestStruct) MustMarshalXDR() []byte {
@@ -103,81 +124,107 @@ func (o TestStruct) MustMarshalXDR() []byte {
 	return bs
 }
 
-func (o TestStruct) AppendXDR(bs []byte) ([]byte, error) {
-	var aw = xdr.AppendWriter(bs)
-	var xw = xdr.NewWriter(&aw)
-	_, err := o.EncodeXDRInto(xw)
-	return []byte(aw), err
-}
-
-func (o TestStruct) EncodeXDRInto(xw *xdr.Writer) (int, error) {
-	xw.WriteUint64(uint64(o.I))
-	xw.WriteUint8(uint8(o.I8))
-	xw.WriteUint8(o.UI8)
-	xw.WriteUint16(uint16(o.I16))
-	xw.WriteUint16(o.UI16)
-	xw.WriteUint32(uint32(o.I32))
-	xw.WriteUint32(o.UI32)
-	xw.WriteUint64(uint64(o.I64))
-	xw.WriteUint64(o.UI64)
+func (o TestStruct) MarshalXDRInto(m *xdr.Marshaller) error {
+	m.MarshalBool(o.B)
+	m.MarshalUint64(uint64(o.I))
+	m.MarshalUint8(uint8(o.I8))
+	m.MarshalUint8(o.UI8)
+	m.MarshalUint16(uint16(o.I16))
+	m.MarshalUint16(o.UI16)
+	m.MarshalUint32(uint32(o.I32))
+	m.MarshalUint32(o.UI32)
+	m.MarshalUint64(uint64(o.I64))
+	m.MarshalUint64(o.UI64)
 	if l := len(o.BS); l > 1024 {
-		return xw.Tot(), xdr.ElementSizeExceeded("BS", l, 1024)
+		return xdr.ElementSizeExceeded("BS", l, 1024)
 	}
-	xw.WriteBytes(o.BS)
+	m.MarshalBytes(o.BS)
 	if l := len(o.S); l > 1024 {
-		return xw.Tot(), xdr.ElementSizeExceeded("S", l, 1024)
+		return xdr.ElementSizeExceeded("S", l, 1024)
 	}
-	xw.WriteString(o.S)
-	_, err := o.C.EncodeXDRInto(xw)
-	if err != nil {
-		return xw.Tot(), err
+	m.MarshalString(o.S)
+	if err := o.C.MarshalXDRInto(m); err != nil {
+		return err
 	}
 	if l := len(o.SS); l > 1024 {
-		return xw.Tot(), xdr.ElementSizeExceeded("SS", l, 1024)
+		return xdr.ElementSizeExceeded("SS", l, 1024)
 	}
-	xw.WriteUint32(uint32(len(o.SS)))
+	m.MarshalUint32(uint32(len(o.SS)))
 	for i := range o.SS {
-		xw.WriteString(o.SS[i])
+		m.MarshalString(o.SS[i])
 	}
-	return xw.Tot(), xw.Error()
-}
-
-func (o *TestStruct) DecodeXDR(r io.Reader) error {
-	xr := xdr.NewReader(r)
-	return o.DecodeXDRFrom(xr)
+	if err := o.ES.MarshalXDRInto(m); err != nil {
+		return err
+	}
+	if err := o.OS.MarshalXDRInto(m); err != nil {
+		return err
+	}
+	m.MarshalUint32(uint32(len(o.OSs)))
+	for i := range o.OSs {
+		if err := o.OSs[i].MarshalXDRInto(m); err != nil {
+			return err
+		}
+	}
+	return m.Error
 }
 
 func (o *TestStruct) UnmarshalXDR(bs []byte) error {
-	var br = bytes.NewReader(bs)
-	var xr = xdr.NewReader(br)
-	return o.DecodeXDRFrom(xr)
+	u := &xdr.Unmarshaller{Data: bs}
+	return o.UnmarshalXDRFrom(u)
 }
-
-func (o *TestStruct) DecodeXDRFrom(xr *xdr.Reader) error {
-	o.I = int(xr.ReadUint64())
-	o.I8 = int8(xr.ReadUint8())
-	o.UI8 = xr.ReadUint8()
-	o.I16 = int16(xr.ReadUint16())
-	o.UI16 = xr.ReadUint16()
-	o.I32 = int32(xr.ReadUint32())
-	o.UI32 = xr.ReadUint32()
-	o.I64 = int64(xr.ReadUint64())
-	o.UI64 = xr.ReadUint64()
-	o.BS = xr.ReadBytesMax(1024)
-	o.S = xr.ReadStringMax(1024)
-	(&o.C).DecodeXDRFrom(xr)
-	_SSSize := int(xr.ReadUint32())
+func (o *TestStruct) UnmarshalXDRFrom(u *xdr.Unmarshaller) error {
+	o.B = u.UnmarshalBool()
+	o.I = int(u.UnmarshalUint64())
+	o.I8 = int8(u.UnmarshalUint8())
+	o.UI8 = u.UnmarshalUint8()
+	o.I16 = int16(u.UnmarshalUint16())
+	o.UI16 = u.UnmarshalUint16()
+	o.I32 = int32(u.UnmarshalUint32())
+	o.UI32 = u.UnmarshalUint32()
+	o.I64 = int64(u.UnmarshalUint64())
+	o.UI64 = u.UnmarshalUint64()
+	o.BS = u.UnmarshalBytesMax(1024)
+	o.S = u.UnmarshalStringMax(1024)
+	(&o.C).UnmarshalXDRFrom(u)
+	_SSSize := int(u.UnmarshalUint32())
 	if _SSSize < 0 {
 		return xdr.ElementSizeExceeded("SS", _SSSize, 1024)
+	} else if _SSSize == 0 {
+		o.SS = nil
+	} else {
+		if _SSSize > 1024 {
+			return xdr.ElementSizeExceeded("SS", _SSSize, 1024)
+		}
+		if _SSSize <= len(o.SS) {
+			for i := _SSSize; i < len(o.SS); i++ {
+				o.SS[i] = ""
+			}
+			o.SS = o.SS[:_SSSize]
+		} else {
+			o.SS = make([]string, _SSSize)
+		}
+		for i := range o.SS {
+			o.SS[i] = u.UnmarshalString()
+		}
 	}
-	if _SSSize > 1024 {
-		return xdr.ElementSizeExceeded("SS", _SSSize, 1024)
+	(&o.ES).UnmarshalXDRFrom(u)
+	(&o.OS).UnmarshalXDRFrom(u)
+	_OSsSize := int(u.UnmarshalUint32())
+	if _OSsSize < 0 {
+		return xdr.ElementSizeExceeded("OSs", _OSsSize, 0)
+	} else if _OSsSize == 0 {
+		o.OSs = nil
+	} else {
+		if _OSsSize <= len(o.OSs) {
+			o.OSs = o.OSs[:_OSsSize]
+		} else {
+			o.OSs = make([]OtherStruct, _OSsSize)
+		}
+		for i := range o.OSs {
+			(&o.OSs[i]).UnmarshalXDRFrom(u)
+		}
 	}
-	o.SS = make([]string, _SSSize)
-	for i := range o.SS {
-		o.SS[i] = xr.ReadString()
-	}
-	return xr.Error()
+	return u.Error
 }
 
 /*
@@ -191,10 +238,9 @@ struct EmptyStruct {
 
 */
 
-func (o EmptyStruct) EncodeXDR(w io.Writer) (int, error) {
-	return 0, nil
+func (o EmptyStruct) XDRSize() int {
+	return 0
 }
-
 func (o EmptyStruct) MarshalXDR() ([]byte, error) {
 	return nil, nil
 }
@@ -203,15 +249,7 @@ func (o EmptyStruct) MustMarshalXDR() []byte {
 	return nil
 }
 
-func (o EmptyStruct) AppendXDR(bs []byte) ([]byte, error) {
-	return bs, nil
-}
-
-func (o EmptyStruct) EncodeXDRInto(xw *xdr.Writer) (int, error) {
-	return xw.Tot(), xw.Error()
-}
-
-func (o *EmptyStruct) DecodeXDR(r io.Reader) error {
+func (o EmptyStruct) MarshalXDRInto(m *xdr.Marshaller) error {
 	return nil
 }
 
@@ -219,6 +257,63 @@ func (o *EmptyStruct) UnmarshalXDR(bs []byte) error {
 	return nil
 }
 
-func (o *EmptyStruct) DecodeXDRFrom(xr *xdr.Reader) error {
-	return xr.Error()
+func (o *EmptyStruct) UnmarshalXDRFrom(u *xdr.Unmarshaller) error {
+	return nil
+}
+
+/*
+
+OtherStruct Structure:
+
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                              F1                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/                                                               /
+\                   F2 (length + padded data)                   \
+/                                                               /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+struct OtherStruct {
+	unsigned int F1;
+	string F2<>;
+}
+
+*/
+
+func (o OtherStruct) XDRSize() int {
+	return 4 +
+		4 + len(o.F2) + xdr.Padding(len(o.F2))
+}
+
+func (o OtherStruct) MarshalXDR() ([]byte, error) {
+	buf := make([]byte, o.XDRSize())
+	m := &xdr.Marshaller{Data: buf}
+	return buf, o.MarshalXDRInto(m)
+}
+
+func (o OtherStruct) MustMarshalXDR() []byte {
+	bs, err := o.MarshalXDR()
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}
+
+func (o OtherStruct) MarshalXDRInto(m *xdr.Marshaller) error {
+	m.MarshalUint32(o.F1)
+	m.MarshalString(o.F2)
+	return m.Error
+}
+
+func (o *OtherStruct) UnmarshalXDR(bs []byte) error {
+	u := &xdr.Unmarshaller{Data: bs}
+	return o.UnmarshalXDRFrom(u)
+}
+func (o *OtherStruct) UnmarshalXDRFrom(u *xdr.Unmarshaller) error {
+	o.F1 = u.UnmarshalUint32()
+	o.F2 = u.UnmarshalString()
+	return u.Error
 }
