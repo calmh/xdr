@@ -36,7 +36,7 @@ func (u *Unmarshaller) UnmarshalStringMax(max int) string {
 		return ""
 	}
 
-	return (string(buf))
+	return string(buf)
 }
 
 func (u *Unmarshaller) UnmarshalBytes() []byte {
